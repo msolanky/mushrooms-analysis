@@ -1,0 +1,63 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn import tree
+from sklearn.tree import DecisionTreeClassifier
+import matplotlib.pyplot as plt
+from sklearn import metrics
+
+# building the classification tree:
+mushroom = pd.read_csv('mushrooms.csv')
+pd.set_option('display.max_columns', None)
+X1 = mushroom.iloc[:, mushroom.columns != 'class']
+y = mushroom.iloc[:, 0]
+# getting dummy variables because all of the attributes are categorical
+X = pd.get_dummies(X1, columns=X1.columns)
+X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.75, random_state=2021, stratify=y)
+# leaving criterion to default value, which is gini
+dt = DecisionTreeClassifier(max_depth=6, random_state=2021)
+dt.fit(X_train, y_train)
+y_pred = dt.predict(X_test)
+
+# creating and printing the confusion matrix
+cf = metrics.confusion_matrix(y_test, y_pred)
+print(cf)
+# plotting the confusion matrix
+metrics.plot_confusion_matrix(dt, X_test, y_test)
+plt.show()
+
+# determining accuracy between predicted and training
+y_pred1 = dt.predict(X_train)
+print(metrics.accuracy_score(y_train, y_pred1))
+# The accuracy on the train partition is 0.9988511406532086.
+
+# determining accuracy score between predicted and testing
+print(metrics.accuracy_score(y_test, y_pred))
+# The accuracy on the test partition is 0.9980305268340719.
+
+# plotting the classification tree
+fn = X.columns
+classList = list(map(str, dt.classes_.tolist()))
+tree.plot_tree(dt, feature_names=fn, class_names=classList, filled=True, fontsize=5)
+plt.show()
+
+# listing the top 3 most important features for determining toxicity of a mushroom
+imp=pd.DataFrame(zip(X_train.columns, dt.feature_importances_))
+print(imp.sort_values(by=[1]).tail(n=3))
+
+# creating a dictionary that stores all of the attributes of the given mushroom
+mushroom2 = {'cap-shape': 'x', 'cap-surface': 's', 'cap-color': 'n', 'bruises': 't', 'odor': 'y', 'gill-attachment': 'f',
+             'gill-spacing': 'c', 'gill-size': 'n', 'gill-color': 'k', 'stalk-shape': 'e', 'stalk-root': 'e', 'stalk-surface-above-ring': 's',
+             'stalk-surface-below-ring': 's', 'stalk-color-above-ring': 'w', 'stalk-color-below-ring': 'w', 'veil-type': 'p', 'veil-color': 'w',
+             'ring-number': 'o', 'ring-type': 'p', 'spore-print-color': 'r', 'population': 's', 'habitat': 'u'}
+# appending the original data frame with a row that contains the dictionary of the given mushroom's attributes
+# using ignore_index=True because I am appending a dictionary
+mushroom = mushroom.append(mushroom2, ignore_index=True)
+# printing the newly appended dataframe to confirm that the row was added and recognize that the row was added to the end of the dataframe
+print(mushroom)
+# creating new feature matrix
+X2 = mushroom.iloc[:, mushroom.columns != 'class']
+# getting dummy variables for new feature matrix
+X2dummies = pd.get_dummies(X2, columns=X2.columns)
+# predicting class of mushroom using model and feature matrix that consists of dummy variables of the last row of the dataframe
+print(dt.predict(X2dummies.tail(1)))
+# The output is 'p', which means that the mushroom is predicted to be poisonous.
